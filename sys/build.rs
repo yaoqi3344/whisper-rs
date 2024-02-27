@@ -8,11 +8,15 @@ use std::path::PathBuf;
 
 fn main() {
     let target = env::var("TARGET").unwrap();
-    // Link C++ standard library
-    if let Some(cpp_stdlib) = get_cpp_link_stdlib(&target) {
+
+    // 根据目标平台选择C++标准库
+    if target.contains("msvc") {
+        // MSVC环境下，默认会链接C++标准库，无需手动指定
+    } else if let Some(cpp_stdlib) = get_cpp_link_stdlib(&target) {
         println!("cargo:rustc-link-lib=dylib={}", cpp_stdlib);
     }
-    // Link macOS Accelerate framework for matrix calculations
+
+    // macOS特定配置
     if target.contains("apple") {
         println!("cargo:rustc-link-lib=framework=Accelerate");
         #[cfg(feature = "coreml")]
@@ -27,6 +31,7 @@ fn main() {
             println!("cargo:rustc-link-lib=framework=MetalKit");
         }
     }
+
 
     #[cfg(feature = "coreml")]
     println!("cargo:rustc-link-lib=static=whisper.coreml");
@@ -62,7 +67,7 @@ fn main() {
 
     if !whisper_root.exists() {
         std::fs::create_dir_all(&whisper_root).unwrap();
-        fs_extra::dir::copy("./whisper.cpp", &out, &Default::default()).unwrap_or_else(|e| {
+        fs_extra::dir::copy("./whisper.cpp", &out, &fs_extra::dir::CopyOptions::new()).unwrap_or_else(|e| {
             panic!(
                 "Failed to copy whisper sources into {}: {}",
                 whisper_root.display(),
@@ -103,7 +108,7 @@ fn main() {
     }
 
     let mut config = Config::new(&whisper_root);
-
+    
     config
         .profile("Release")
         .define("BUILD_SHARED_LIBS", "OFF")
@@ -144,17 +149,21 @@ fn main() {
         config.define("CMAKE_BUILD_TYPE", "RelWithDebInfo");
     }
 
+     if target.contains("msvc") {
+        config.generator("Visual Studio 16 2019"); // 根据实际的Visual Studio版本进行调整
+        // 对于MSVC，可能需要设置一些特定的编译选项
+    }
+
     let destination = config.build();
 
-    if target.contains("window") && !target.contains("gnu") {
+    if target.contains("windows") && !target.contains("gnu") {
         println!(
             "cargo:rustc-link-search={}",
-            out.join("build").join("Release").display()
+            destination.join("lib").display()
         );
     } else {
-        println!("cargo:rustc-link-search={}", out.join("build").display());
+        println!("cargo:rustc-link-search={}", destination.join("lib").display());
     }
-    println!("cargo:rustc-link-search=native={}", destination.display());
     println!("cargo:rustc-link-lib=static=whisper");
 
     // for whatever reason this file is generated during build and triggers cargo complaining
