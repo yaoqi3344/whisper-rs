@@ -7,7 +7,7 @@ use whisper_rs_sys::{
 
 #[cfg_attr(any(not(windows), target_env = "gnu"), repr(u32))] // include windows-gnu
 #[cfg_attr(all(windows, not(target_env = "gnu")), repr(i32))] // msvc being *special* again
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]//
 pub enum WhisperGrammarElementType {
     /// End of rule definition
     End = whisper_gretype_WHISPER_GRETYPE_END as u32,
