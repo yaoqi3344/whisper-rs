@@ -1,4 +1,5 @@
 # whisper-rs
+# THIS version change it to suit Android device
 
 Rust bindings to [whisper.cpp](https://github.com/ggerganov/whisper.cpp/)
 
